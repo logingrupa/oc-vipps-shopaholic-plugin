@@ -100,16 +100,9 @@ Route::get('/vipps/return/{order_id}', function (Request $request, $order_id) {
                 return redirect(getSuccessRedirectUrl($obOrder));
 
             case 'ABORTED':
-            case 'CANCELLED':
             case 'TERMINATED':
-                // Customer cancelled or payment was aborted
-                $obOrder->save();
-                setOrderCancelledStatus($obOrder);
-
-                return redirect(getCancelRedirectUrl($obOrder));
-
             case 'EXPIRED':
-                // Payment expired
+                // Customer cancelled, payment was aborted, or expired
                 $obOrder->save();
                 setOrderCancelledStatus($obOrder);
 
