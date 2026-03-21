@@ -38,9 +38,6 @@ class VippsPaymentGateway extends AbstractPaymentGateway
     /** @var VippsApiClient */
     protected $obApiClient;
 
-    /** @var object Raw API response */
-    protected $obResponse;
-
     /**
      * Get the response array from the Vipps API.
      *
@@ -169,15 +166,13 @@ class VippsPaymentGateway extends AbstractPaymentGateway
             );
 
             // Create the payment via the ePayment API
-            $this->obResponse = $this->obApiClient->createPayment(
+            $this->arResponse = $this->obApiClient->createPayment(
                 $this->arRequestData['amount_in_ore'],
                 $this->arRequestData['currency'],
                 $this->arRequestData['reference'],
                 $this->arRequestData['return_url'],
                 $this->arRequestData['description']
             );
-
-            $this->arResponse = is_array($this->obResponse) ? $this->obResponse : [];
 
         } catch (\RuntimeException $e) {
             $this->sMessage = $e->getMessage();
