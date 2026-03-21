@@ -142,8 +142,10 @@ class VippsPaymentGateway extends AbstractPaymentGateway
             }
         }
 
-        if ($this->arRequestData['amount_in_ore'] < 100) {
-            $this->sMessage = 'Order amount is below the Vipps minimum (1 NOK).';
+        $iMinimumAmount = $this->getMinimumAmountForCurrency($this->arRequestData['currency']);
+
+        if ($this->arRequestData['amount_in_ore'] < $iMinimumAmount) {
+            $this->sMessage = 'Order amount is below the Vipps minimum for ' . $this->arRequestData['currency'] . '.';
             return false;
         }
 
@@ -261,6 +263,26 @@ class VippsPaymentGateway extends AbstractPaymentGateway
         $sReference = substr($sReference, 0, 64);
 
         return $sReference;
+    }
+
+    /**
+     * Get the minimum payment amount in minor units for the given currency.
+     *
+     * Per Vipps docs: NOK minimum is 100 øre (1 NOK), DKK minimum is 1 øre,
+     * EUR minimum is 1 cent.
+     *
+     * @param string $sCurrency
+     * @return int
+     */
+    protected function getMinimumAmountForCurrency(string $sCurrency): int
+    {
+        $arMinimumAmounts = [
+            'NOK' => 100,
+            'DKK' => 1,
+            'EUR' => 1,
+        ];
+
+        return $arMinimumAmounts[strtoupper($sCurrency)] ?? 100;
     }
 
     /**
