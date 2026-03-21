@@ -423,10 +423,10 @@ class VippsCallbackHandler
         $sUrl = \Event::dispatch('logingrupa.vipps.redirect.' . $sType, [$obOrder], true);
 
         $arDefaults = [
-            'success' => '/checkout/success?order=' . $obOrder->id,
-            'cancel'  => '/checkout/cancel?order=' . $obOrder->id,
-            'pending' => '/checkout/pending?order=' . $obOrder->id,
-            'failure' => '/checkout/failure?order=' . $obOrder->id,
+            'success' => '/checkout/' . $obOrder->secret_key,
+            'cancel'  => '/checkout/' . $obOrder->secret_key,
+            'pending' => '/checkout/' . $obOrder->secret_key,
+            'failure' => '/checkout/' . $obOrder->secret_key,
         ];
 
         return $sUrl ?: ($arDefaults[$sType] ?? '/');
