@@ -78,6 +78,20 @@ class ExtendFieldHandler
                 ],
             ],
 
+            // ── Webhook Secret ──────────────────────────────────────
+            'gateway_property[vipps_webhook_secret]' => [
+                'label'   => 'logingrupa.vippsshopaholic::lang.gateway.webhook_secret',
+                'comment' => 'logingrupa.vippsshopaholic::lang.gateway.webhook_secret_comment',
+                'tab'     => 'logingrupa.vippsshopaholic::lang.gateway.name',
+                'type'    => 'sensitive',
+                'span'    => 'full',
+                'trigger' => [
+                    'action'    => 'show',
+                    'field'     => 'gateway_id',
+                    'condition' => 'value[vipps]',
+                ],
+            ],
+
             // ── Test Credentials ────────────────────────────────────
             'gateway_property[vipps_test_client_id]' => [
                 'label' => 'logingrupa.vippsshopaholic::lang.gateway.test_client_id',

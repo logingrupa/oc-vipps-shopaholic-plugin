@@ -147,9 +147,15 @@ Route::get('/vipps/return/{order_id}', function (Request $request, $order_id) {
  */
 Route::post('/vipps/webhook', function (Request $request) {
 
+    // Verify HMAC-SHA256 signature before processing
+    if (!verifyVippsWebhookSignature($request)) {
+        Log::warning('Vipps webhook: HMAC signature verification failed');
+        return response()->json(['status' => 'unauthorized'], 401);
+    }
+
     $arPayload = $request->all();
 
-    Log::info('Vipps webhook received', ['payload' => $arPayload]);
+    Log::info('Vipps webhook received', ['event' => $arPayload['name'] ?? 'unknown']);
 
     $sReference = $arPayload['reference'] ?? null;
     $sMsn       = $arPayload['msn'] ?? null;
@@ -248,6 +254,84 @@ Route::post('/vipps/webhook', function (Request $request) {
 // ─────────────────────────────────────────────────────────────────────────────
 //  Helper Functions
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Verify the Vipps webhook HMAC-SHA256 signature.
+ *
+ * Vipps signs webhook requests using HMAC-SHA256 with the webhook secret.
+ * The Authorization header format is:
+ *   HMAC-SHA256 SignedHeaders=x-ms-date;host;x-ms-content-sha256&Signature=[base64]
+ *
+ * @param Request $obRequest
+ * @return bool
+ * @see https://developer.vippsmobilepay.com/docs/APIs/webhooks-api/request-authentication
+ */
+function verifyVippsWebhookSignature(Request $obRequest): bool
+{
+    $sAuthorizationHeader = $obRequest->header('Authorization');
+
+    if (!$sAuthorizationHeader || !str_starts_with($sAuthorizationHeader, 'HMAC-SHA256')) {
+        return false;
+    }
+
+    // Find the webhook secret from any Vipps payment method
+    $sWebhookSecret = getVippsWebhookSecret();
+
+    if (!$sWebhookSecret) {
+        Log::error('Vipps webhook: No webhook secret configured');
+        return false;
+    }
+
+    // Parse the Authorization header
+    // Format: HMAC-SHA256 SignedHeaders=x-ms-date;host;x-ms-content-sha256&Signature=[base64]
+    if (!preg_match('/Signature=(.+)$/', $sAuthorizationHeader, $arMatches)) {
+        return false;
+    }
+
+    $sReceivedSignature = $arMatches[1];
+
+    // Verify content hash
+    $sRawBody       = $obRequest->getContent();
+    $sContentHash   = base64_encode(hash('sha256', $sRawBody, true));
+    $sReceivedHash  = $obRequest->header('x-ms-content-sha256');
+
+    if ($sContentHash !== $sReceivedHash) {
+        Log::warning('Vipps webhook: Content hash mismatch');
+        return false;
+    }
+
+    // Build the signed string
+    $sDate       = $obRequest->header('x-ms-date');
+    $sHost       = $obRequest->header('Host') ?: $obRequest->getHost();
+    $sPathQuery  = $obRequest->getRequestUri();
+
+    $sSignedString = "POST\n{$sPathQuery}\n{$sDate};{$sHost};{$sContentHash}";
+
+    // Compute HMAC-SHA256 with the webhook secret
+    $sComputedSignature = base64_encode(
+        hash_hmac('sha256', $sSignedString, base64_decode($sWebhookSecret), true)
+    );
+
+    return hash_equals($sComputedSignature, $sReceivedSignature);
+}
+
+/**
+ * Retrieve the Vipps webhook secret from the first Vipps payment method.
+ *
+ * @return string|null
+ */
+function getVippsWebhookSecret(): ?string
+{
+    $obPaymentMethod = PaymentMethod::where('gateway_id', 'vipps')->first();
+
+    if (!$obPaymentMethod) {
+        return null;
+    }
+
+    $arGatewayProperty = $obPaymentMethod->gateway_property ?? [];
+
+    return $arGatewayProperty['vipps_webhook_secret'] ?? null;
+}
 
 /**
  * Build a VippsApiClient from the order's payment method settings.

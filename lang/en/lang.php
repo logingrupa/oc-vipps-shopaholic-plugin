@@ -19,6 +19,8 @@
         'live_msn'                 => 'Live Merchant Serial Number (MSN)',
         'auto_capture'             => 'Auto-capture payments',
         'auto_capture_comment'     => 'If enabled, payments will be captured automatically after the customer authorizes. Disable for manual capture (e.g., when shipping physical goods).',
+        'webhook_secret'           => 'Webhook Secret',
+        'webhook_secret_comment'   => 'The secret returned when registering a webhook with the Vipps Webhooks API. Required for HMAC-SHA256 verification of incoming webhook requests.',
     ],
     'message' => [
         'payment_created'          => 'Vipps payment initiated. Redirecting to Vipps...',
