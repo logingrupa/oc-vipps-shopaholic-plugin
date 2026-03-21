@@ -370,9 +370,11 @@ function buildVippsClientFromOrder(Order $obOrder, array $arPaymentData): VippsA
  */
 function findOrderByVippsReference(string $sReference): ?Order
 {
-    // Search for the reference in the payment_response JSON column
-    return Order::where('payment_response', 'LIKE', '%"vipps_reference":"' . $sReference . '"%')
-        ->first();
+    // Use parameterized LIKE binding to prevent SQL injection.
+    // The payment_response column stores JSON as a text string.
+    $sSearchPattern = '%"vipps_reference":"' . str_replace(['%', '_'], ['\\%', '\\_'], $sReference) . '"%';
+
+    return Order::where('payment_response', 'LIKE', $sSearchPattern)->first();
 }
 
 /**
