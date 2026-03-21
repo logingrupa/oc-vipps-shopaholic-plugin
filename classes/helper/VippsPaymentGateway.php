@@ -100,7 +100,8 @@ class VippsPaymentGateway extends AbstractPaymentGateway
         $sReference = $this->buildPaymentReference();
 
         // Build the return URL where Vipps redirects the customer after payment.
-        $sReturnUrl = url('/vipps/return/' . $this->obOrder->id . '?reference=' . $sReference);
+        // Uses secret_key instead of sequential id to prevent order enumeration (IDOR).
+        $sReturnUrl = url('/vipps/return/' . $this->obOrder->secret_key . '?reference=' . $sReference);
 
         // Build a human-readable payment description
         $sDescription = 'Order #' . $this->obOrder->order_number;

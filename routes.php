@@ -16,20 +16,20 @@ use LoginGrupa\VippsShopaholic\Classes\Api\VippsApiClient;
  *  they are redirected back to this URL. We verify the payment status with
  *  the Vipps API and update the Shopaholic order accordingly.
  */
-Route::get('/vipps/return/{order_id}', function (Request $request, $order_id) {
+Route::get('/vipps/return/{secret_key}', function (Request $request, $secret_key) {
 
     $sReference = $request->get('reference');
 
     Log::info('Vipps return callback received', [
-        'order_id'  => $order_id,
-        'reference' => $sReference,
+        'secret_key' => $secret_key,
+        'reference'  => $sReference,
     ]);
 
-    // Find the order
-    $obOrder = Order::find($order_id);
+    // Find the order by secret_key to prevent IDOR enumeration
+    $obOrder = Order::where('secret_key', $secret_key)->first();
 
     if (!$obOrder) {
-        Log::error('Vipps return: Order not found', ['order_id' => $order_id]);
+        Log::error('Vipps return: Order not found', ['secret_key' => $secret_key]);
         return redirect('/');
     }
 
@@ -37,7 +37,7 @@ Route::get('/vipps/return/{order_id}', function (Request $request, $order_id) {
     $arPaymentData = json_decode($obOrder->payment_response, true);
 
     if (!$arPaymentData || empty($arPaymentData['vipps_reference'])) {
-        Log::error('Vipps return: No payment data on order', ['order_id' => $order_id]);
+        Log::error('Vipps return: No payment data on order', ['order_id' => $obOrder->id]);
         return redirect('/');
     }
 
@@ -53,7 +53,7 @@ Route::get('/vipps/return/{order_id}', function (Request $request, $order_id) {
         $sState = $arPaymentDetails['state'] ?? 'UNKNOWN';
 
         Log::info('Vipps return: Payment state', [
-            'order_id'  => $order_id,
+            'order_id'  => $obOrder->id,
             'reference' => $sReference,
             'state'     => $sState,
         ]);
@@ -81,7 +81,7 @@ Route::get('/vipps/return/{order_id}', function (Request $request, $order_id) {
                     $obOrder->payment_response = json_encode($arPaymentData);
 
                     Log::info('Vipps return: Auto-captured payment', [
-                        'order_id'  => $order_id,
+                        'order_id'  => $obOrder->id,
                         'reference' => $sReference,
                     ]);
                 }
@@ -117,7 +117,7 @@ Route::get('/vipps/return/{order_id}', function (Request $request, $order_id) {
 
             default:
                 Log::warning('Vipps return: Unexpected state', [
-                    'order_id' => $order_id,
+                    'order_id' => $obOrder->id,
                     'state'    => $sState,
                 ]);
                 $obOrder->save();
@@ -127,7 +127,7 @@ Route::get('/vipps/return/{order_id}', function (Request $request, $order_id) {
 
     } catch (\Exception $e) {
         Log::error('Vipps return: Exception during status check', [
-            'order_id' => $order_id,
+            'order_id' => $obOrder->id,
             'error'    => $e->getMessage(),
         ]);
 
