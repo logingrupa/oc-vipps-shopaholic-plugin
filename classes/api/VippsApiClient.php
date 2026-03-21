@@ -257,7 +257,7 @@ class VippsApiClient
         $token = $this->getAccessToken();
         $url   = $this->getBaseUrl() . '/epayment/v1/payments/' . $reference . '/cancel';
 
-        $headers = $this->buildAuthHeaders($token);
+        $headers = $this->buildAuthHeaders($token, $this->generateIdempotencyKey());
 
         return $this->sendRequest('POST', $url, $headers);
     }
