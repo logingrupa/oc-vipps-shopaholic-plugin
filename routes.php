@@ -249,7 +249,8 @@ Route::post('/vipps/webhook', function (Request $request) {
     // Always return 200 to acknowledge receipt
     return response()->json(['status' => 'ok'], 200);
 
-})->middleware('web');
+})->middleware(['web'])
+    ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class);
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Helper Functions
