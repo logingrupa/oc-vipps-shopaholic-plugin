@@ -1,0 +1,34 @@
+{
+    "name": "logingrupa/oc-vipps-shopaholic-plugin",
+    "type": "october-plugin",
+    "description": "Vipps MobilePay ePayment integration for Lovata Shopaholic on OctoberCMS. Accept Vipps payments in your Norwegian webshop.",
+    "keywords": [
+        "octobercms",
+        "october",
+        "shopaholic",
+        "vipps",
+        "mobilepay",
+        "payment",
+        "norway",
+        "ecommerce"
+    ],
+    "license": "GPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "LoginGrupa",
+            "homepage": "https://github.com/logingrupa"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "composer/installers": "~1.0 || ~2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "LoginGrupa\\VippsShopaholic\\": "."
+        }
+    },
+    "extra": {
+        "installer-name": "logingrupa/vippsshopaholic"
+    }
+}

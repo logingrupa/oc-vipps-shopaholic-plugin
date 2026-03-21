@@ -1,0 +1,6 @@
+plugin:
+    name: 'logingrupa.vippsshopaholic::lang.plugin.name'
+    description: 'logingrupa.vippsshopaholic::lang.plugin.description'
+    author: LoginGrupa
+    icon: icon-credit-card
+    homepage: 'https://github.com/logingrupa/oc-vipps-shopaholic-plugin'
