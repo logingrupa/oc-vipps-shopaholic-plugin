@@ -289,6 +289,67 @@ class VippsApiClient
         return $this->sendRequest('POST', $url, $headers, $body);
     }
 
+    // ── Webhooks API ────────────────────────────────────────
+    // @see https://developer.vippsmobilepay.com/docs/APIs/webhooks-api/
+
+    /**
+     * Register a webhook with the Vipps Webhooks API.
+     *
+     * The returned secret is shown ONLY ONCE — store it immediately.
+     *
+     * @param string $sUrl    HTTPS callback URL (e.g. https://example.com/vipps/webhook)
+     * @param array  $arEvents Events to subscribe to (e.g. ['epayments.payment.captured.v1'])
+     * @return array           Response with 'id' and 'secret' keys
+     * @throws \RuntimeException
+     */
+    public function registerWebhook(string $sUrl, array $arEvents): array
+    {
+        $sToken  = $this->getAccessToken();
+        $sApiUrl = $this->getBaseUrl() . '/webhooks/v1/webhooks';
+
+        $arBody = [
+            'url'    => $sUrl,
+            'events' => $arEvents,
+        ];
+
+        $arHeaders = $this->buildAuthHeaders($sToken);
+
+        return $this->sendRequest('POST', $sApiUrl, $arHeaders, $arBody);
+    }
+
+    /**
+     * List all registered webhooks for this MSN.
+     *
+     * @return array Response with 'webhooks' array
+     * @throws \RuntimeException
+     */
+    public function listWebhooks(): array
+    {
+        $sToken  = $this->getAccessToken();
+        $sApiUrl = $this->getBaseUrl() . '/webhooks/v1/webhooks';
+
+        $arHeaders = $this->buildAuthHeaders($sToken);
+
+        return $this->sendRequest('GET', $sApiUrl, $arHeaders);
+    }
+
+    /**
+     * Delete a webhook by its ID.
+     *
+     * @param string $sWebhookId UUID of the webhook to delete
+     * @return array
+     * @throws \RuntimeException
+     */
+    public function deleteWebhook(string $sWebhookId): array
+    {
+        $sToken  = $this->getAccessToken();
+        $sApiUrl = $this->getBaseUrl() . '/webhooks/v1/webhooks/' . $sWebhookId;
+
+        $arHeaders = $this->buildAuthHeaders($sToken);
+
+        return $this->sendRequest('DELETE', $sApiUrl, $arHeaders);
+    }
+
     /**
      * Build the standard authentication and system headers for API requests.
      *

@@ -1,0 +1,76 @@
+<div id="vippsWebhookManager" class="card p-3 mb-3">
+    <h5 class="mb-3">
+        <?= e(trans('logingrupa.vippsshopaholic::lang.webhook.title')) ?>
+        <a href="https://developer.vippsmobilepay.com/docs/APIs/webhooks-api/"
+           target="_blank" class="text-muted small ms-1"
+           title="Vipps Webhooks API documentation">ⓘ</a>
+    </h5>
+
+    <p class="form-text mb-2">
+        <?= e(trans('logingrupa.vippsshopaholic::lang.webhook.description')) ?>
+    </p>
+    <p class="form-text text-muted small mb-3">
+        <strong><?= e(trans('logingrupa.vippsshopaholic::lang.webhook.callback_url_label')) ?>:</strong>
+        <code><?= e(url('/vipps/webhook')) ?></code>
+    </p>
+
+    <!-- Action buttons — uses October CMS v4 backend AJAX (vanilla JS, not jQuery) -->
+    <div class="mb-3">
+        <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            data-request="onVippsRegisterWebhook"
+            data-request-flash
+            data-stripe-load-indicator
+        >
+            <i class="icon-plus"></i>
+            <?= e(trans('logingrupa.vippsshopaholic::lang.webhook.btn_register')) ?>
+        </button>
+
+        <button
+            type="button"
+            class="btn btn-secondary btn-sm"
+            data-request="onVippsListWebhooks"
+            data-stripe-load-indicator
+        >
+            <i class="icon-refresh"></i>
+            <?= e(trans('logingrupa.vippsshopaholic::lang.webhook.btn_refresh')) ?>
+        </button>
+    </div>
+
+    <!-- Webhook list container (populated via AJAX) -->
+    <div id="vippsWebhookList">
+        <p class="text-muted small"><?= e(trans('logingrupa.vippsshopaholic::lang.webhook.click_refresh')) ?></p>
+    </div>
+</div>
+
+<script type="module">
+    /**
+     * Vipps Webhook Manager — updates the webhook list after AJAX responses.
+     * Listens to October CMS AJAX complete events and replaces #vippsWebhookList
+     * with the 'vipps_webhook_list' key from the JSON response.
+     */
+    const CONTAINER_ID = 'vippsWebhookList';
+    const RESPONSE_KEY = 'vipps_webhook_list';
+
+    const VIPPS_HANDLERS = new Set([
+        'onVippsRegisterWebhook',
+        'onVippsListWebhooks',
+        'onVippsDeleteWebhook',
+    ]);
+
+    document.addEventListener('ajax:done', (event) => {
+        const { context, data } = event.detail ?? {};
+
+        if (!context?.handler || !VIPPS_HANDLERS.has(context.handler)) {
+            return;
+        }
+
+        if (data?.[RESPONSE_KEY]) {
+            const container = document.getElementById(CONTAINER_ID);
+            if (container) {
+                container.innerHTML = data[RESPONSE_KEY];
+            }
+        }
+    });
+</script>

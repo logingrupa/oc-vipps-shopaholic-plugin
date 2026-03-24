@@ -1,0 +1,34 @@
+<?php if (!empty($arWebhooks)): ?>
+    <table class="table table-sm table-hover mb-0">
+        <thead>
+            <tr>
+                <th><?= e(trans('logingrupa.vippsshopaholic::lang.webhook.col_url')) ?></th>
+                <th><?= e(trans('logingrupa.vippsshopaholic::lang.webhook.col_events')) ?></th>
+                <th class="text-end"><?= e(trans('logingrupa.vippsshopaholic::lang.webhook.col_actions')) ?></th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($arWebhooks as $arWebhook): ?>
+                <tr>
+                    <td><code class="small"><?= e($arWebhook['url'] ?? '—') ?></code></td>
+                    <td class="small"><?= e(implode(', ', $arWebhook['events'] ?? [])) ?></td>
+                    <td class="text-end">
+                        <button
+                            type="button"
+                            class="btn btn-danger btn-sm"
+                            data-request="onVippsDeleteWebhook"
+                            data-request-data="webhook_id: '<?= e($arWebhook['id'] ?? '') ?>'"
+                            data-request-confirm="<?= e(trans('logingrupa.vippsshopaholic::lang.webhook.confirm_delete')) ?>"
+                            data-request-flash
+                            data-stripe-load-indicator
+                        >
+                            <i class="icon-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            <?php endforeach ?>
+        </tbody>
+    </table>
+<?php else: ?>
+    <p class="text-muted small mb-0"><?= e(trans('logingrupa.vippsshopaholic::lang.webhook.none_registered')) ?></p>
+<?php endif ?>
