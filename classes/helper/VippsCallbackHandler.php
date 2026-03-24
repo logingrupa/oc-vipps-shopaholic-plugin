@@ -337,7 +337,7 @@ class VippsCallbackHandler
         }
 
         $obGateway = new VippsPaymentGateway();
-        $obGateway->initOrderObject($obOrder->id);
+        $obGateway->initOrder($obOrder->id);
 
         return $obGateway;
     }

@@ -39,6 +39,17 @@ class VippsPaymentGateway extends AbstractPaymentGateway
     protected $obApiClient;
 
     /**
+     * Public proxy to the parent's protected initOrderObject().
+     * Used by VippsCallbackHandler to initialize the gateway with an order.
+     *
+     * @param int $iOrderID
+     */
+    public function initOrder(int $iOrderID): void
+    {
+        $this->initOrderObject($iOrderID);
+    }
+
+    /**
      * Get the response array from the Vipps API.
      *
      * @return array
