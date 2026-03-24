@@ -73,4 +73,10 @@
             }
         }
     });
+
+    // Auto-load webhook list on page init
+    const refreshBtn = document.querySelector('[data-request="onVippsListWebhooks"]');
+    if (refreshBtn) {
+        requestAnimationFrame(() => refreshBtn.click());
+    }
 </script>
