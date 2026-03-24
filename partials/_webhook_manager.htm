@@ -93,4 +93,77 @@
         }
     });
 
+    // ── Environment field toggle ──────────────────────────────────────
+    // Show only test or live credential fields based on the environment dropdown.
+
+    /**
+     * Toggle visibility of test/live credential fields.
+     *
+     * @param {string} sEnv - 'test' or 'live'
+     */
+    function toggleEnvironmentFields(sEnv) {
+        const arTestFields = document.querySelectorAll('.vipps-env-test');
+        const arLiveFields = document.querySelectorAll('.vipps-env-live');
+
+        arTestFields.forEach(function (obEl) {
+            obEl.style.display = (sEnv === 'test') ? '' : 'none';
+        });
+        arLiveFields.forEach(function (obEl) {
+            obEl.style.display = (sEnv === 'live') ? '' : 'none';
+        });
+    }
+
+    /**
+     * Attach the toggle listener to the environment dropdown once it appears.
+     */
+    function attachEnvironmentToggle() {
+        const obDropdown = document.querySelector('select[name="gateway_property[vipps_environment]"]');
+        if (!obDropdown) {
+            return false;
+        }
+
+        // Initial toggle based on current value
+        toggleEnvironmentFields(obDropdown.value || 'test');
+
+        // Toggle on change
+        obDropdown.addEventListener('change', function () {
+            toggleEnvironmentFields(obDropdown.value);
+        });
+
+        return true;
+    }
+
+    // Poll for the dropdown (it may not exist yet if the gateway_id trigger hasn't fired)
+    if (!attachEnvironmentToggle()) {
+        let iAttempts = 0;
+        const iMaxAttempts = 50;
+        const iIntervalId = setInterval(function () {
+            iAttempts++;
+            if (attachEnvironmentToggle() || iAttempts >= iMaxAttempts) {
+                clearInterval(iIntervalId);
+            }
+        }, 100);
+    }
+
+    // ── Tab hash preservation on save ─────────────────────────────────
+    // Persist the current tab hash via sessionStorage so the page reloads
+    // on the same tab after the backend form save.
+
+    const HASH_STORAGE_KEY = 'vipps_tab_hash';
+
+    // Restore hash from a previous save, if present
+    const sSavedHash = sessionStorage.getItem(HASH_STORAGE_KEY);
+    if (sSavedHash) {
+        window.location.hash = sSavedHash;
+        sessionStorage.removeItem(HASH_STORAGE_KEY);
+    }
+
+    // Before save, capture the current tab hash
+    document.addEventListener('ajax:before', function (event) {
+        const obContext = event.detail?.context;
+        if (obContext?.handler === 'onSave' && window.location.hash) {
+            sessionStorage.setItem(HASH_STORAGE_KEY, window.location.hash);
+        }
+    });
+
 </script>
