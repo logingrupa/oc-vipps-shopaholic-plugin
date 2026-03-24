@@ -82,6 +82,15 @@
                 container.innerHTML = data[RESPONSE_KEY];
             }
         }
+
+        // After successful register, show that the webhook secret field was populated
+        if (context.handler === 'onVippsRegisterWebhook' && data?.[RESPONSE_KEY]) {
+            const secretInput = document.querySelector('[data-sensitive-input][name*="vipps_webhook_secret"]');
+            if (secretInput && !secretInput.value) {
+                secretInput.value = '__hidden__';
+                secretInput.type = 'password';
+            }
+        }
     });
 
 </script>
