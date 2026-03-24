@@ -97,12 +97,12 @@ class ExtendFieldHandler
                 ],
             ],
 
-            // ── Webhook Secret ──────────────────────────────────────
+            // ── Webhook Secrets (per-environment) ─────────────────────
             // Auto-populated by the "Register Webhook" button above,
             // or paste manually from POST /webhooks/v1/webhooks response.
             // Docs: https://developer.vippsmobilepay.com/docs/APIs/webhooks-api/request-authentication/
-            'gateway_property[vipps_webhook_secret]' => [
-                'label'       => 'logingrupa.vippsshopaholic::lang.gateway.webhook_secret',
+            'gateway_property[vipps_test_webhook_secret]' => [
+                'label'       => 'logingrupa.vippsshopaholic::lang.gateway.test_webhook_secret',
                 'comment'     => 'logingrupa.vippsshopaholic::lang.gateway.webhook_secret_comment',
                 'commentHtml' => true,
                 'tab'         => 'logingrupa.vippsshopaholic::lang.gateway.name',
@@ -110,8 +110,22 @@ class ExtendFieldHandler
                 'span'        => 'full',
                 'trigger' => [
                     'action'    => 'show',
-                    'field'     => 'gateway_id',
-                    'condition' => 'value[vipps]',
+                    'field'     => 'gateway_property[vipps_environment]',
+                    'condition' => 'value[test]',
+                ],
+            ],
+
+            'gateway_property[vipps_live_webhook_secret]' => [
+                'label'       => 'logingrupa.vippsshopaholic::lang.gateway.live_webhook_secret',
+                'comment'     => 'logingrupa.vippsshopaholic::lang.gateway.webhook_secret_comment',
+                'commentHtml' => true,
+                'tab'         => 'logingrupa.vippsshopaholic::lang.gateway.name',
+                'type'        => 'sensitive',
+                'span'        => 'full',
+                'trigger' => [
+                    'action'    => 'show',
+                    'field'     => 'gateway_property[vipps_environment]',
+                    'condition' => 'value[live]',
                 ],
             ],
 

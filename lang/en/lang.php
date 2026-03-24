@@ -27,7 +27,8 @@
         'live_msn_comment'         => 'Found in Vipps Portal → Developer → Production keys. Your live sale unit number. <a href="https://developer.vippsmobilepay.com/docs/developer-resources/portal/#how-to-find-the-merchant-serial-number-msn" target="_blank">ⓘ Docs</a>',
         'auto_capture'             => 'Auto-capture payments',
         'auto_capture_comment'     => 'If enabled, payments will be captured automatically after the customer authorizes. Disable for manual capture (e.g., when shipping physical goods). <a href="https://developer.vippsmobilepay.com/docs/APIs/epayment-api/operations/create-payment/#capture-type" target="_blank">ⓘ Docs</a>',
-        'webhook_secret'           => 'Webhook Secret',
+        'test_webhook_secret'      => 'Test Webhook Secret',
+        'live_webhook_secret'      => 'Live Webhook Secret',
         'webhook_secret_comment'   => 'The secret returned when registering a webhook via the Vipps Webhooks API. Required for HMAC-SHA256 verification of incoming webhook requests. You get this value back in the response when you call POST /v1/webhooks. <a href="https://developer.vippsmobilepay.com/docs/APIs/webhooks-api/request-authentication/" target="_blank">ⓘ Docs</a>',
     ],
     'webhook' => [

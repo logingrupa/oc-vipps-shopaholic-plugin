@@ -19,8 +19,8 @@ use LoginGrupa\VippsShopaholic\Classes\Api\VippsApiClient;
  */
 class VippsWebhookManager
 {
-    /** @var string Key used to store the cached webhook list in gateway_property */
-    const CACHE_KEY = 'vipps_webhooks_cache';
+    /** @var string Cache key suffix — prefixed with environment at runtime */
+    const CACHE_SUFFIX = '_webhooks_cache';
 
     /** @var array ePayment webhook events to subscribe to */
     const EPAYMENT_EVENTS = [
@@ -53,9 +53,10 @@ class VippsWebhookManager
                 return ['success' => false, 'message' => $sError, 'webhook_id' => null];
             }
 
-            // Auto-save the secret into gateway_property
-            $arGateway = $obPaymentMethod->gateway_property ?: [];
-            $arGateway['vipps_webhook_secret'] = $arResponse['secret'];
+            // Auto-save the secret into environment-specific gateway_property key
+            $arGateway    = $obPaymentMethod->gateway_property ?: [];
+            $sEnvironment = $arGateway['vipps_environment'] ?? 'test';
+            $arGateway['vipps_' . $sEnvironment . '_webhook_secret'] = $arResponse['secret'];
             $obPaymentMethod->gateway_property = $arGateway;
             $obPaymentMethod->save();
 
@@ -115,6 +116,7 @@ class VippsWebhookManager
 
     /**
      * Get the cached webhook list from gateway_property (no API call).
+     * Returns webhooks for the currently selected environment.
      *
      * @param PaymentMethod $obPaymentMethod
      * @return array
@@ -122,8 +124,9 @@ class VippsWebhookManager
     public function getCached(PaymentMethod $obPaymentMethod): array
     {
         $arGateway = $obPaymentMethod->gateway_property ?: [];
+        $sCacheKey = $this->getCacheKey($arGateway);
 
-        return $arGateway[self::CACHE_KEY] ?? [];
+        return $arGateway[$sCacheKey] ?? [];
     }
 
     /**
@@ -172,7 +175,7 @@ class VippsWebhookManager
     }
 
     /**
-     * Save webhook list to gateway_property cache.
+     * Save webhook list to environment-specific gateway_property cache.
      *
      * @param PaymentMethod $obPaymentMethod
      * @param array         $arWebhooks
@@ -180,9 +183,23 @@ class VippsWebhookManager
     protected function saveCache(PaymentMethod $obPaymentMethod, array $arWebhooks): void
     {
         $arGateway = $obPaymentMethod->gateway_property ?: [];
-        $arGateway[self::CACHE_KEY] = $arWebhooks;
+        $sCacheKey = $this->getCacheKey($arGateway);
+        $arGateway[$sCacheKey] = $arWebhooks;
         $obPaymentMethod->gateway_property = $arGateway;
         $obPaymentMethod->save();
+    }
+
+    /**
+     * Build the environment-specific cache key.
+     *
+     * @param array $arGateway
+     * @return string
+     */
+    protected function getCacheKey(array $arGateway): string
+    {
+        $sEnvironment = $arGateway['vipps_environment'] ?? 'test';
+
+        return 'vipps_' . $sEnvironment . self::CACHE_SUFFIX;
     }
 
     /**

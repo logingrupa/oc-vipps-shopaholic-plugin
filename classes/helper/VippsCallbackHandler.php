@@ -498,7 +498,8 @@ class VippsCallbackHandler
         }
 
         $arGatewayProperty = $obPaymentMethod->gateway_property ?? [];
+        $sEnvironment      = $arGatewayProperty['vipps_environment'] ?? 'test';
 
-        return $arGatewayProperty['vipps_webhook_secret'] ?? null;
+        return $arGatewayProperty['vipps_' . $sEnvironment . '_webhook_secret'] ?? null;
     }
 }
