@@ -12,10 +12,16 @@ use LoginGrupa\VippsShopaholic\Classes\Api\VippsApiClient;
  * Builds a VippsApiClient from the PaymentMethod's gateway_property
  * and delegates to the Webhooks API endpoints.
  *
+ * Webhook list is cached in gateway_property['vipps_webhooks_cache']
+ * to avoid API calls on every page load.
+ *
  * @see https://developer.vippsmobilepay.com/docs/APIs/webhooks-api/
  */
 class VippsWebhookManager
 {
+    /** @var string Key used to store the cached webhook list in gateway_property */
+    const CACHE_KEY = 'vipps_webhooks_cache';
+
     /** @var array ePayment webhook events to subscribe to */
     const EPAYMENT_EVENTS = [
         'epayments.payment.created.v1',
@@ -53,6 +59,9 @@ class VippsWebhookManager
             $obPaymentMethod->gateway_property = $arGateway;
             $obPaymentMethod->save();
 
+            // Refresh and cache the webhook list
+            $this->refreshCache($obPaymentMethod, $obClient);
+
             return [
                 'success'    => true,
                 'message'    => 'Webhook registered. Secret saved automatically.',
@@ -72,7 +81,7 @@ class VippsWebhookManager
     }
 
     /**
-     * List all registered webhooks for the given payment method.
+     * List all registered webhooks. Fetches from API and updates cache.
      *
      * @param PaymentMethod $obPaymentMethod
      * @return array ['success' => bool, 'webhooks' => array, 'message' => string]
@@ -82,10 +91,13 @@ class VippsWebhookManager
         try {
             $obClient   = $this->buildApiClient($obPaymentMethod);
             $arResponse = $obClient->listWebhooks();
+            $arWebhooks = $arResponse['webhooks'] ?? [];
+
+            $this->saveCache($obPaymentMethod, $arWebhooks);
 
             return [
                 'success'  => true,
-                'webhooks' => $arResponse['webhooks'] ?? [],
+                'webhooks' => $arWebhooks,
                 'message'  => '',
             ];
         } catch (\Exception $obException) {
@@ -102,6 +114,19 @@ class VippsWebhookManager
     }
 
     /**
+     * Get the cached webhook list from gateway_property (no API call).
+     *
+     * @param PaymentMethod $obPaymentMethod
+     * @return array
+     */
+    public function getCached(PaymentMethod $obPaymentMethod): array
+    {
+        $arGateway = $obPaymentMethod->gateway_property ?: [];
+
+        return $arGateway[self::CACHE_KEY] ?? [];
+    }
+
+    /**
      * Delete a webhook by ID.
      *
      * @param PaymentMethod $obPaymentMethod
@@ -114,6 +139,9 @@ class VippsWebhookManager
             $obClient = $this->buildApiClient($obPaymentMethod);
             $obClient->deleteWebhook($sWebhookId);
 
+            // Refresh and cache the webhook list
+            $this->refreshCache($obPaymentMethod, $obClient);
+
             return ['success' => true, 'message' => 'Webhook deleted.'];
         } catch (\Exception $obException) {
             Log::error('VippsWebhookManager: delete failed', [
@@ -123,6 +151,38 @@ class VippsWebhookManager
 
             return ['success' => false, 'message' => $obException->getMessage()];
         }
+    }
+
+    /**
+     * Fetch webhooks from API and save to cache.
+     *
+     * @param PaymentMethod $obPaymentMethod
+     * @param VippsApiClient $obClient
+     */
+    protected function refreshCache(PaymentMethod $obPaymentMethod, VippsApiClient $obClient): void
+    {
+        try {
+            $arResponse = $obClient->listWebhooks();
+            $this->saveCache($obPaymentMethod, $arResponse['webhooks'] ?? []);
+        } catch (\Exception $obException) {
+            Log::warning('VippsWebhookManager: cache refresh failed', [
+                'error' => $obException->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Save webhook list to gateway_property cache.
+     *
+     * @param PaymentMethod $obPaymentMethod
+     * @param array         $arWebhooks
+     */
+    protected function saveCache(PaymentMethod $obPaymentMethod, array $arWebhooks): void
+    {
+        $arGateway = $obPaymentMethod->gateway_property ?: [];
+        $arGateway[self::CACHE_KEY] = $arWebhooks;
+        $obPaymentMethod->gateway_property = $arGateway;
+        $obPaymentMethod->save();
     }
 
     /**

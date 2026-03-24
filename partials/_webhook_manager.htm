@@ -38,9 +38,19 @@
         </button>
     </div>
 
-    <!-- Webhook list container (populated via AJAX) -->
+    <!-- Webhook list container (rendered from cache, updated via AJAX) -->
+    <?php
+        $obVippsPayment = \Lovata\OrdersShopaholic\Models\PaymentMethod::where('gateway_id', 'vipps')->first();
+        $arCachedWebhooks = $obVippsPayment
+            ? (new \LoginGrupa\VippsShopaholic\Classes\Helper\VippsWebhookManager())->getCached($obVippsPayment)
+            : [];
+    ?>
     <div id="vippsWebhookList">
-        <p class="text-muted small"><?= e(trans('logingrupa.vippsshopaholic::lang.webhook.click_refresh')) ?></p>
+        <?php if (!empty($arCachedWebhooks)): ?>
+            <?= $this->makePartial('$/logingrupa/vippsshopaholic/partials/_webhook_list', ['arWebhooks' => $arCachedWebhooks]) ?>
+        <?php else: ?>
+            <p class="text-muted small"><?= e(trans('logingrupa.vippsshopaholic::lang.webhook.click_refresh')) ?></p>
+        <?php endif ?>
     </div>
 </div>
 
@@ -74,9 +84,4 @@
         }
     });
 
-    // Auto-load webhook list on page init
-    const refreshBtn = document.querySelector('[data-request="onVippsListWebhooks"]');
-    if (refreshBtn) {
-        requestAnimationFrame(() => refreshBtn.click());
-    }
 </script>
