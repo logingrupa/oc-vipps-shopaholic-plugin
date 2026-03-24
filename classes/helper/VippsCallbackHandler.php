@@ -288,7 +288,7 @@ class VippsCallbackHandler
             $obGateway = $this->resolveGateway($obOrder);
 
             if ($obGateway) {
-                $obGateway->setSuccessStatus();
+                $obGateway->applySuccessStatus();
             }
         } catch (\Exception $obException) {
             Log::warning('Vipps: Could not set success status', [
@@ -310,7 +310,7 @@ class VippsCallbackHandler
             $obGateway = $this->resolveGateway($obOrder);
 
             if ($obGateway) {
-                $obGateway->setCancelStatus();
+                $obGateway->applyCancelStatus();
             }
         } catch (\Exception $obException) {
             Log::warning('Vipps: Could not set cancel status', [
