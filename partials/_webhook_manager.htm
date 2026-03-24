@@ -95,6 +95,25 @@
         }
     });
 
+    // ── Environment field toggle ──────────────────────────────────────
+    // October CMS triggers handle gateway_id→tab visibility (single trigger per field).
+    // Environment toggle is a second condition — handled here via JS on the cssClass markers.
+
+    function toggleEnvironmentFields(sEnv) {
+        document.querySelectorAll('.vipps-env-test').forEach(el => {
+            el.style.display = (sEnv === 'test') ? '' : 'none';
+        });
+        document.querySelectorAll('.vipps-env-live').forEach(el => {
+            el.style.display = (sEnv === 'live') ? '' : 'none';
+        });
+    }
+
+    const obEnvDropdown = document.querySelector('select[name*="vipps_environment"]');
+    if (obEnvDropdown) {
+        toggleEnvironmentFields(obEnvDropdown.value || 'test');
+        obEnvDropdown.addEventListener('change', () => toggleEnvironmentFields(obEnvDropdown.value));
+    }
+
     // ── Tab hash preservation on save ─────────────────────────────────
     // Persist the current tab hash via sessionStorage so the page reloads
     // on the same tab after the backend form save.
