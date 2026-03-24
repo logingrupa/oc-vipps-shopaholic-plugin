@@ -125,11 +125,10 @@ class ExtendFieldHandler
                 'tab'         => 'logingrupa.vippsshopaholic::lang.gateway.name',
                 'type'        => 'text',
                 'span'        => 'left',
-                'cssClass'    => 'vipps-env-test',
                 'trigger' => [
                     'action'    => 'show',
-                    'field'     => 'gateway_id',
-                    'condition' => 'value[vipps]',
+                    'field'     => 'gateway_property[vipps_environment]',
+                    'condition' => 'value[test]',
                 ],
             ],
 
@@ -140,11 +139,10 @@ class ExtendFieldHandler
                 'tab'         => 'logingrupa.vippsshopaholic::lang.gateway.name',
                 'type'        => 'sensitive',
                 'span'        => 'right',
-                'cssClass'    => 'vipps-env-test',
                 'trigger' => [
                     'action'    => 'show',
-                    'field'     => 'gateway_id',
-                    'condition' => 'value[vipps]',
+                    'field'     => 'gateway_property[vipps_environment]',
+                    'condition' => 'value[test]',
                 ],
             ],
 
@@ -157,11 +155,10 @@ class ExtendFieldHandler
                 'tab'         => 'logingrupa.vippsshopaholic::lang.gateway.name',
                 'type'        => 'text',
                 'span'        => 'left',
-                'cssClass'    => 'vipps-env-test',
                 'trigger' => [
                     'action'    => 'show',
-                    'field'     => 'gateway_id',
-                    'condition' => 'value[vipps]',
+                    'field'     => 'gateway_property[vipps_environment]',
+                    'condition' => 'value[test]',
                 ],
             ],
 
@@ -174,11 +171,10 @@ class ExtendFieldHandler
                 'tab'         => 'logingrupa.vippsshopaholic::lang.gateway.name',
                 'type'        => 'text',
                 'span'        => 'right',
-                'cssClass'    => 'vipps-env-test',
                 'trigger' => [
                     'action'    => 'show',
-                    'field'     => 'gateway_id',
-                    'condition' => 'value[vipps]',
+                    'field'     => 'gateway_property[vipps_environment]',
+                    'condition' => 'value[test]',
                 ],
             ],
 
@@ -192,11 +188,10 @@ class ExtendFieldHandler
                 'tab'         => 'logingrupa.vippsshopaholic::lang.gateway.name',
                 'type'        => 'text',
                 'span'        => 'left',
-                'cssClass'    => 'vipps-env-live',
                 'trigger' => [
                     'action'    => 'show',
-                    'field'     => 'gateway_id',
-                    'condition' => 'value[vipps]',
+                    'field'     => 'gateway_property[vipps_environment]',
+                    'condition' => 'value[live]',
                 ],
             ],
 
@@ -207,11 +202,10 @@ class ExtendFieldHandler
                 'tab'         => 'logingrupa.vippsshopaholic::lang.gateway.name',
                 'type'        => 'sensitive',
                 'span'        => 'right',
-                'cssClass'    => 'vipps-env-live',
                 'trigger' => [
                     'action'    => 'show',
-                    'field'     => 'gateway_id',
-                    'condition' => 'value[vipps]',
+                    'field'     => 'gateway_property[vipps_environment]',
+                    'condition' => 'value[live]',
                 ],
             ],
 
@@ -222,11 +216,10 @@ class ExtendFieldHandler
                 'tab'         => 'logingrupa.vippsshopaholic::lang.gateway.name',
                 'type'        => 'text',
                 'span'        => 'left',
-                'cssClass'    => 'vipps-env-live',
                 'trigger' => [
                     'action'    => 'show',
-                    'field'     => 'gateway_id',
-                    'condition' => 'value[vipps]',
+                    'field'     => 'gateway_property[vipps_environment]',
+                    'condition' => 'value[live]',
                 ],
             ],
 
@@ -237,11 +230,10 @@ class ExtendFieldHandler
                 'tab'         => 'logingrupa.vippsshopaholic::lang.gateway.name',
                 'type'        => 'text',
                 'span'        => 'right',
-                'cssClass'    => 'vipps-env-live',
                 'trigger' => [
                     'action'    => 'show',
-                    'field'     => 'gateway_id',
-                    'condition' => 'value[vipps]',
+                    'field'     => 'gateway_property[vipps_environment]',
+                    'condition' => 'value[live]',
                 ],
             ],
         ]);
