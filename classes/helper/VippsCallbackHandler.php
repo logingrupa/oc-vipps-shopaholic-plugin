@@ -373,18 +373,47 @@ class VippsCallbackHandler
     }
 
     /**
-     * Find an order by the Vipps payment reference stored in payment_response.
+     * Find an order by the Vipps payment reference.
+     *
+     * The reference format produced by VippsPaymentGateway::buildPaymentReference()
+     * is `order-{order_number}-{timestamp}`. We cannot query `payment_response`
+     * directly because that column is declared `$encryptable` on the Order model,
+     * so the database stores ciphertext and SQL LIKE on a plaintext pattern
+     * never matches. Instead we parse `order_number` from the reference, load
+     * the order by that indexed column, and verify the stored `vipps_reference`
+     * equals the webhook reference (defense-in-depth on top of the HMAC layer).
      *
      * @param string $sReference
      * @return Order|null
      */
     protected function findOrderByReference(string $sReference): ?Order
     {
-        $sSearchPattern = '%"vipps_reference":"'
-            . str_replace(['%', '_'], ['\\%', '\\_'], $sReference)
-            . '"%';
+        if (!preg_match('/^order-(.+)-\d+$/', $sReference, $arMatches)) {
+            return null;
+        }
 
-        return Order::where('payment_response', 'LIKE', $sSearchPattern)->first();
+        $sOrderNumber = $arMatches[1];
+        $obOrder      = Order::where('order_number', $sOrderNumber)->first();
+
+        if (!$obOrder) {
+            return null;
+        }
+
+        // Defensive: the webhook's reference must match what we stored when
+        // initiating the payment. Prevents updating the wrong order if there
+        // is ever a reference mismatch.
+        $arPaymentData    = $this->decodePaymentData($obOrder) ?: [];
+        $sStoredReference = $arPaymentData['vipps_reference'] ?? null;
+
+        if ($sStoredReference !== $sReference) {
+            Log::warning('Vipps webhook: reference mismatch between order and webhook', [
+                'webhook_reference' => $sReference,
+                'order_number'      => $obOrder->order_number,
+            ]);
+            return null;
+        }
+
+        return $obOrder;
     }
 
     /**
