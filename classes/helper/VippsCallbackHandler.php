@@ -477,8 +477,12 @@ class VippsCallbackHandler
 
         $sSignedString = "POST\n{$sPathQuery}\n{$sDate};{$sHost};{$sContentHash}";
 
+        // The webhook secret is used as the HMAC key in its UTF-8 string form
+        // (the 88-char base64 string itself, NOT base64-decoded). This matches
+        // the official Vipps Node.js and C# sample code in
+        // https://developer.vippsmobilepay.com/docs/APIs/webhooks-api/request-authentication
         $sComputedSignature = base64_encode(
-            hash_hmac('sha256', $sSignedString, base64_decode($sWebhookSecret), true)
+            hash_hmac('sha256', $sSignedString, $sWebhookSecret, true)
         );
 
         return hash_equals($sComputedSignature, $sReceivedSignature);
