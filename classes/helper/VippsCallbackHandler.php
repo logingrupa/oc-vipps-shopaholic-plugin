@@ -18,6 +18,8 @@ use LoginGrupa\VippsShopaholic\Classes\Api\VippsApiClient;
  */
 class VippsCallbackHandler
 {
+    const CAPTURE_LOCK_RETRY_SECONDS = 2;
+
     /**
      * Handle the customer returning from Vipps after payment.
      *
@@ -48,7 +50,18 @@ class VippsCallbackHandler
             return redirect('/');
         }
 
-        $sReference = $sReference ?: $arPaymentData['vipps_reference'];
+        // The URL value is shopper-editable: it counts only when it names this order's own payment
+        $bOwnReference = is_string($sReference)
+            && $this->getOrderNumberFromReference($sReference) === (string) $obOrder->order_number;
+
+        if (!empty($sReference) && !$bOwnReference) {
+            Log::warning('Vipps return: URL reference belongs to another order, using the order reference', [
+                'order_id'      => $obOrder->id,
+                'url_reference' => $sReference,
+            ]);
+        }
+
+        $sReference = $bOwnReference ? $sReference : $arPaymentData['vipps_reference'];
 
         try {
             $obApiClient      = $this->buildApiClient($obOrder, $arPaymentData);
@@ -139,7 +152,13 @@ class VippsCallbackHandler
     ): RedirectResponse {
         switch ($sState) {
             case 'AUTHORIZED':
-                $arPaymentData = $this->autoCaptureIfEnabled($obApiClient, $sReference, $arPaymentData, $obOrder);
+                $arPaymentData = $this->autoCaptureIfEnabled(
+                    $obApiClient,
+                    $sReference,
+                    $arPaymentData,
+                    $obOrder,
+                    $arPaymentData['vipps_details']
+                );
                 $this->savePaymentData($obOrder, $arPaymentData);
                 $this->applySuccessStatus($obOrder);
 
@@ -233,17 +252,23 @@ class VippsCallbackHandler
      * Auto-capture the payment if the auto_capture flag is enabled.
      * Shared by both the return URL and webhook handlers (DRY).
      *
+     * The payment state stays AUTHORIZED after a capture, so the captured amount
+     * decides: a payment already captured in full is not captured again, and a
+     * capture counts only when Vipps reports the full amount captured.
+     *
      * @param VippsApiClient $obApiClient
      * @param string         $sReference
      * @param array          $arPaymentData
      * @param Order          $obOrder
+     * @param array|null     $arCurrentPayment Payment details fetched in this request, if any
      * @return array Updated payment data
      */
     protected function autoCaptureIfEnabled(
         VippsApiClient $obApiClient,
         string $sReference,
         array $arPaymentData,
-        Order $obOrder
+        Order $obOrder,
+        ?array $arCurrentPayment = null
     ): array {
         $bAutoCapture = $arPaymentData['vipps_auto_capture'] ?? false;
 
@@ -251,14 +276,60 @@ class VippsCallbackHandler
             return $arPaymentData;
         }
 
+        $iAmountInOre = (int) ($arPaymentData['vipps_amount_ore'] ?? 0);
+
+        if ($iAmountInOre <= 0) {
+            Log::error('Vipps: Auto-capture skipped, the order has no payment amount', [
+                'order_id'  => $obOrder->id,
+                'reference' => $sReference,
+            ]);
+
+            return $arPaymentData;
+        }
+
+        // Details fetched in this request decide; the webhook only has what earlier calls stored
+        $iKnownCapturedAmount = $arCurrentPayment !== null
+            ? $this->getCapturedAmount($arCurrentPayment)
+            : max(
+                $this->getCapturedAmount($arPaymentData['vipps_details'] ?? []),
+                $this->getCapturedAmount($arPaymentData['vipps_capture_result'] ?? [])
+            );
+
+        if ($iKnownCapturedAmount >= $iAmountInOre) {
+            $arPaymentData['vipps_state'] = 'CAPTURED';
+
+            return $arPaymentData;
+        }
+
         try {
             $arCaptureResult = $obApiClient->capturePayment(
                 $sReference,
-                $arPaymentData['vipps_amount_ore'],
+                $iAmountInOre,
                 $arPaymentData['vipps_currency']
             );
 
-            $arPaymentData['vipps_capture_result'] = $arCaptureResult;
+            // Vipps advises a retry once the lock of a concurrent operation is released
+            if ($this->isPaymentLocked($arCaptureResult)) {
+                sleep(self::CAPTURE_LOCK_RETRY_SECONDS);
+                $arCaptureResult = $obApiClient->capturePayment(
+                    $sReference,
+                    $iAmountInOre,
+                    $arPaymentData['vipps_currency']
+                );
+            }
+
+            // An error body, or a concurrent request captured first: Vipps' own record decides
+            $arConfirmedResult = $this->getCapturedAmount($arCaptureResult) >= $iAmountInOre
+                ? $arCaptureResult
+                : $obApiClient->getPaymentDetails($sReference);
+
+            $iCapturedAmount = $this->getCapturedAmount($arConfirmedResult);
+
+            if ($iCapturedAmount < $iAmountInOre) {
+                throw new \RuntimeException('Vipps reports ' . $iCapturedAmount . ' of ' . $iAmountInOre . ' captured');
+            }
+
+            $arPaymentData['vipps_capture_result'] = $arConfirmedResult;
             $arPaymentData['vipps_state']          = 'CAPTURED';
 
             Log::info('Vipps: Auto-captured payment', [
@@ -274,6 +345,41 @@ class VippsCallbackHandler
         }
 
         return $arPaymentData;
+    }
+
+    /**
+     * Captured amount still held, in minor units, from a Vipps payment or capture
+     * response: capturedAmount keeps its value after a refund, so refunds are subtracted.
+     *
+     * @param array $arResponse
+     * @return int
+     */
+    protected function getCapturedAmount(array $arResponse): int
+    {
+        $arAggregate = $arResponse['aggregate'] ?? [];
+
+        return (int) ($arAggregate['capturedAmount']['value'] ?? 0) - (int) ($arAggregate['refundedAmount']['value'] ?? 0);
+    }
+
+    /**
+     * Vipps answers 423 with ErrorCode 6160 while another operation holds the payment.
+     *
+     * @param array $arResponse
+     * @return bool
+     */
+    protected function isPaymentLocked(array $arResponse): bool
+    {
+        if ((int) ($arResponse['status'] ?? 0) === 423) {
+            return true;
+        }
+
+        foreach ($arResponse['extraDetails'] ?? [] as $arDetail) {
+            if (($arDetail['name'] ?? null) === 'ErrorCode' && (string) ($arDetail['reason'] ?? '') === '6160') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -388,12 +494,13 @@ class VippsCallbackHandler
      */
     protected function findOrderByReference(string $sReference): ?Order
     {
-        if (!preg_match('/^order-(.+)-\d+$/', $sReference, $arMatches)) {
+        $sOrderNumber = $this->getOrderNumberFromReference($sReference);
+
+        if ($sOrderNumber === null) {
             return null;
         }
 
-        $sOrderNumber = $arMatches[1];
-        $obOrder      = Order::where('order_number', $sOrderNumber)->first();
+        $obOrder = Order::where('order_number', $sOrderNumber)->first();
 
         if (!$obOrder) {
             return null;
@@ -414,6 +521,21 @@ class VippsCallbackHandler
         }
 
         return $obOrder;
+    }
+
+    /**
+     * Order number inside a reference built by VippsPaymentGateway::buildPaymentReference().
+     *
+     * @param string $sReference
+     * @return string|null
+     */
+    protected function getOrderNumberFromReference(string $sReference): ?string
+    {
+        if (!preg_match('/^order-(.+)-\d+$/', $sReference, $arMatches)) {
+            return null;
+        }
+
+        return $arMatches[1];
     }
 
     /**

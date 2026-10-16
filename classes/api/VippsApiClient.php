@@ -35,7 +35,7 @@ class VippsApiClient
     const PLUGIN_NAME = 'vipps-shopaholic';
 
     /** @var string Plugin version sent in Vipps-System-Plugin-Version header */
-    const PLUGIN_VERSION = '1.0.0';
+    const PLUGIN_VERSION = '1.0.1';
 
     /** @var string */
     protected $clientId;

@@ -1,2 +1,4 @@
 "1.0.0":
     - "Initialize plugin. Vipps MobilePay ePayment integration for Shopaholic."
+"1.0.1":
+    - "Auto-capture no longer captures a payment twice: the return path and the webhook both check the captured amount Vipps reports, and a rejected capture is logged as a failure instead of being stored as captured. A capture that meets a Vipps lock is retried once, and a refunded payment no longer counts as captured. The return URL accepts only a reference that belongs to the same order."
