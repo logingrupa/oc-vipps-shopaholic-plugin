@@ -29,7 +29,7 @@ class VippsCallbackHandler
      */
     public function handleReturn(Request $obRequest, string $sSecretKey): RedirectResponse
     {
-        $sReference = $obRequest->get('reference');
+        $sReference = $obRequest->query('reference');
 
         Log::info('Vipps return callback received', [
             'secret_key' => $sSecretKey,
@@ -50,18 +50,15 @@ class VippsCallbackHandler
             return redirect('/');
         }
 
-        // The URL value is shopper-editable: it counts only when it names this order's own payment
-        $bOwnReference = is_string($sReference)
-            && $this->getOrderNumberFromReference($sReference) === (string) $obOrder->order_number;
-
-        if (!empty($sReference) && !$bOwnReference) {
-            Log::warning('Vipps return: URL reference belongs to another order, using the order reference', [
+        // The URL value is shopper-editable and may name a superseded payment: the order's current one decides
+        if (!empty($sReference) && $sReference !== $arPaymentData['vipps_reference']) {
+            Log::warning('Vipps return: URL reference is not the order\'s current payment, using the order reference', [
                 'order_id'      => $obOrder->id,
                 'url_reference' => $sReference,
             ]);
         }
 
-        $sReference = $bOwnReference ? $sReference : $arPaymentData['vipps_reference'];
+        $sReference = $arPaymentData['vipps_reference'];
 
         try {
             $obApiClient      = $this->buildApiClient($obOrder, $arPaymentData);
@@ -494,13 +491,12 @@ class VippsCallbackHandler
      */
     protected function findOrderByReference(string $sReference): ?Order
     {
-        $sOrderNumber = $this->getOrderNumberFromReference($sReference);
-
-        if ($sOrderNumber === null) {
+        if (!preg_match('/^order-(.+)-\d+$/', $sReference, $arMatches)) {
             return null;
         }
 
-        $obOrder = Order::where('order_number', $sOrderNumber)->first();
+        $sOrderNumber = $arMatches[1];
+        $obOrder      = Order::where('order_number', $sOrderNumber)->first();
 
         if (!$obOrder) {
             return null;
@@ -521,21 +517,6 @@ class VippsCallbackHandler
         }
 
         return $obOrder;
-    }
-
-    /**
-     * Order number inside a reference built by VippsPaymentGateway::buildPaymentReference().
-     *
-     * @param string $sReference
-     * @return string|null
-     */
-    protected function getOrderNumberFromReference(string $sReference): ?string
-    {
-        if (!preg_match('/^order-(.+)-\d+$/', $sReference, $arMatches)) {
-            return null;
-        }
-
-        return $arMatches[1];
     }
 
     /**
